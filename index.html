@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<title>График смен</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        background-color: #0a1e46;
+        background-image: url('https://e.radikal.host/2026/10/01/IMG_4280.png');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        padding: 30px 15px;
+        color: #fff;
+    }
+
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(10, 30, 70, 0.45);
+        backdrop-filter: blur(3px);
+        z-index: -1;
+    }
+
+    h1 {
+        text-align: center;
+        font-weight: 300;
+        letter-spacing: 2px;
+        margin-bottom: 25px;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        font-size: 28px;
+    }
+
+    .main-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .btn {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: #fff;
+        padding: 12px 22px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 20px rgba(0, 60, 150, 0.25);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn:hover {
+        background: rgba(255, 255, 255, 0.28);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 80, 200, 0.4);
+    }
+
+    .btn:active { transform: translateY(0); }
+
+    .btn-create-week {
+        display: block;
+        margin: 0 auto 25px;
+        font-size: 17px;
+        padding: 14px 30px;
+    }
+
+    .week-block {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 22px;
+        padding: 18px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 32px rgba(0, 40, 120, 0.3);
+    }
+
+    .week-block.closed {
+        border-color: rgba(120, 255, 180, 0.5);
+        box-shadow: 0 8px 32px rgba(0, 200, 120, 0.3);
+    }
+
+    .week-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .week-title {
+        font-size: 18px;
+        font-weight: 500;
+        color: #e8f2ff;
+    }
+
+    .week-actions { display: flex; gap: 8px; }
+
+    .btn-small {
+        padding: 7px 14px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+
+    .btn-danger {
+        background: rgba(255, 80, 80, 0.25);
+        border-color: rgba(255, 120, 120, 0.5);
+    }
+
+    .btn-danger:hover { background: rgba(255, 80, 80, 0.45); }
+
+    .btn-finish {
+        background: rgba(100, 200, 255, 0.25);
+        border-color: rgba(140, 220, 255, 0.5);
+    }
+
+    .btn-finish:hover { background: rgba(100, 200, 255, 0.45); }
+
+    .btn-finish.finished {
+        background: rgba(80, 220, 140, 0.35);
+        border-color: rgba(120, 255, 180, 0.6);
+    }
+
+    .add-day-tile {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: rgba(100, 170, 255, 0.2);
+        border: 2px dashed rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        font-size: 30px;
+        color: #fff;
+        transition: all 0.25s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .add-day-tile:hover {
+        background: rgba(100, 170, 255, 0.4);
+        transform: scale(1.07) rotate(90deg);
+        border-color: #fff;
+    }
+
+    .days-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .day-card {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.13);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-radius: 18px;
+        padding: 14px;
+        box-shadow: 0 6px 24px rgba(0, 40, 120, 0.25);
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .day-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .day-number-input {
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 9px;
+        color: #fff;
+        padding: 6px 10px;
+        font-size: 14px;
+        width: 95px;
+        outline: none;
+        transition: 0.2s;
+    }
+
+    .day-number-input::placeholder { color: rgba(255,255,255,0.55); }
+
+    .day-number-input:focus {
+        border-color: #7fb8ff;
+        background: rgba(255,255,255,0.22);
+        box-shadow: 0 0 0 3px rgba(100, 170, 255, 0.25);
+    }
+
+    .day-top-btns { display: flex; gap: 6px; }
+
+    .icon-btn {
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+    }
+
+    .icon-btn:hover { background: rgba(255,255,255,0.28); }
+
+    .shift-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .shift-row:last-of-type { border-bottom: none; }
+
+    .shift-label {
+        width: 62px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #cfe4ff;
+        flex-shrink: 0;
+    }
+
+    .cars-input {
+        width: 75px;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 9px;
+        color: #fff;
+        padding: 7px 9px;
+        font-size: 14px;
+        text-align: center;
+        outline: none;
+        transition: 0.2s;
+        -moz-appearance: textfield;
+    }
+
+    .cars-input::-webkit-outer-spin-button,
+    .cars-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .cars-input:focus {
+        border-color: #7fb8ff;
+        background: rgba(255,255,255,0.22);
+        box-shadow: 0 0 0 3px rgba(100, 170, 255, 0.25);
+    }
+
+    .cars-word {
+        font-size: 13px;
+        color: rgba(255,255,255,0.75);
+        flex-shrink: 0;
+    }
+
+    .money {
+        margin-left: auto;
+        font-weight: 600;
+        color: #a8d8ff;
+        font-size: 15px;
+        text-shadow: 0 0 8px rgba(100, 180, 255, 0.5);
+        white-space: nowrap;
+    }
+
+    /* ===== Итого дня (обновлено: машин + сумма) ===== */
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.25);
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .total-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #e8f2ff;
+    }
+
+    .total-block {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .total-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        background: rgba(100, 170, 255, 0.3);
+        padding: 4px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(150, 200, 255, 0.4);
+        white-space: nowrap;
+    }
+
+    .total-money {
+        font-size: 15px;
+        font-weight: 700;
+        color: #b6ffd0;
+        background: rgba(60, 220, 130, 0.25);
+        padding: 4px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(120, 255, 180, 0.5);
+        white-space: nowrap;
+        text-shadow: 0 0 8px rgba(60, 220, 130, 0.4);
+    }
+
+    .paid-btn {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(100, 170, 255, 0.3);
+        padding: 5px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(150, 200, 255, 0.4);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        white-space: nowrap;
+    }
+
+    .paid-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.15);
+    }
+
+    .paid-btn.status-match {
+        background: rgba(60, 220, 130, 0.55);
+        border-color: rgba(120, 255, 180, 0.85);
+        box-shadow: 0 0 14px rgba(60, 220, 130, 0.5);
+    }
+
+    .paid-btn.status-less {
+        background: rgba(255, 70, 70, 0.55);
+        border-color: rgba(255, 130, 130, 0.85);
+        box-shadow: 0 0 14px rgba(255, 70, 70, 0.5);
+    }
+
+    .paid-btn.status-more {
+        background: rgba(170, 90, 255, 0.55);
+        border-color: rgba(210, 150, 255, 0.85);
+        box-shadow: 0 0 14px rgba(170, 90, 255, 0.5);
+    }
+
+    .notes-block {
+        margin-top: 10px;
+        display: none;
+    }
+
+    .notes-block.open {
+        display: block;
+        animation: fadeIn 0.25s ease;
+    }
+
+    .notes-textarea {
+        width: 100%;
+        min-height: 70px;
+        resize: vertical;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 12px;
+        color: #fff;
+        padding: 10px;
+        font-size: 13px;
+        outline: none;
+        font-family: inherit;
+        transition: 0.2s;
+    }
+
+    .notes-textarea::placeholder { color: rgba(255,255,255,0.5); }
+
+    .notes-textarea:focus {
+        border-color: #7fb8ff;
+        background: rgba(255,255,255,0.2);
+        box-shadow: 0 0 0 3px rgba(100, 170, 255, 0.25);
+    }
+
+    .notes-indicator { color: #ffd966; }
+
+    .week-total {
+        margin-top: 15px;
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(60, 220, 130, 0.18);
+        border: 1px solid rgba(120, 255, 180, 0.5);
+        backdrop-filter: blur(12px);
+        display: none;
+        animation: fadeIn 0.35s ease;
+    }
+
+    .week-total.show { display: block; }
+
+    .week-total-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #d6ffe8;
+        margin-bottom: 10px;
+    }
+
+    .week-total-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 18px;
+        font-size: 14px;
+    }
+
+    .week-total-grid .k { color: rgba(255,255,255,0.85); }
+
+    .week-total-grid .v {
+        color: #fff;
+        font-weight: 700;
+        text-align: right;
+    }
+
+    .week-total-grid .v.highlight {
+        color: #b6ffd0;
+        font-size: 16px;
+    }
+
+    .empty-text {
+        text-align: center;
+        color: rgba(255,255,255,0.65);
+        font-size: 14px;
+        padding: 20px;
+        font-style: italic;
+    }
+
+    @media (max-width: 480px) {
+        .shift-label { width: 52px; font-size: 13px; }
+        .cars-input { width: 62px; }
+        .cars-word { font-size: 12px; }
+        .money { font-size: 14px; }
+        .week-title { font-size: 16px; }
+        .week-total-grid { grid-template-columns: 1fr; }
+        .total-value, .total-money { font-size: 13px; padding: 4px 10px; }
+    }
+</style>
+</head>
+<body>
+
+<h1>📅 График смен</h1>
+
+<div class="main-container">
+    <button class="btn btn-create-week" onclick="createWeek()">➕ Создать неделю</button>
+    <div id="weeksContainer"></div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'shiftScheduleData';
+    const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                    'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+    let data = { weeks: [] };
+    let weekCounter = 0;
+    let dayCounter = 0;
+
+    function loadData() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                data = JSON.parse(saved);
+                data.weeks.forEach(w => {
+                    if (typeof w.closed === 'undefined') w.closed = false;
+                    weekCounter = Math.max(weekCounter, w.id + 1);
+                    w.days.forEach(d => {
+                        if (typeof d.paid === 'undefined') d.paid = null;
+                        dayCounter = Math.max(dayCounter, d.id + 1);
+                    });
+                });
+            }
+        } catch (e) { console.error('Ошибка загрузки:', e); }
+    }
+
+    function saveData() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+        catch (e) { console.error('Ошибка сохранения:', e); }
+    }
+
+    function getCurrentMonth() { return MONTHS[new Date().getMonth()]; }
+
+    function createWeek() {
+        data.weeks.push({ id: weekCounter++, closed: false, days: [] });
+        saveData();
+        render();
+    }
+
+    function deleteWeek(weekId) {
+        if (!confirm('Удалить неделю со всеми днями?')) return;
+        data.weeks = data.weeks.filter(w => w.id !== weekId);
+        saveData();
+        render();
+    }
+
+    function toggleFinishWeek(weekId) {
+        const week = data.weeks.find(w => w.id === weekId);
+        if (!week) return;
+        if (!week.closed) {
+            if (!confirm('Завершить неделю и рассчитать итог?')) return;
+            week.closed = true;
+        } else {
+            if (!confirm('Возобновить неделю для редактирования?')) return;
+            week.closed = false;
+        }
+        saveData();
+        render();
+    }
+
+    function createDay(weekId) {
+        const week = data.weeks.find(w => w.id === weekId);
+        if (!week) return;
+        if (week.closed) { alert('Неделя завершена. Возобновите её.'); return; }
+        week.days.push({
+            id: dayCounter++,
+            date: '', night: 0, day: 0, evening: 0,
+            notes: '', paid: null
+        });
+        saveData();
+        render();
+    }
+
+    function deleteDay(weekId, dayId) {
+        if (!confirm('Удалить этот день?')) return;
+        const week = data.weeks.find(w => w.id === weekId);
+        if (!week) return;
+        week.days = week.days.filter(d => d.id !== dayId);
+        saveData();
+        render();
+    }
+
+    function updateDay(weekId, dayId, field, value) {
+        const week = data.weeks.find(w => w.id === weekId);
+        if (!week) return;
+        const day = week.days.find(d => d.id === dayId);
+        if (!day) return;
+
+        if (field === 'night' || field === 'day' || field === 'evening') {
+            let num = parseInt(value, 10);
+            if (isNaN(num) || num < 0) num = 0;
+            day[field] = num;
+        } else {
+            day[field] = value;
+        }
+        saveData();
+    }
+
+    function openPaidDialog(weekId, dayId) {
+        const week = data.weeks.find(w => w.id === weekId);
+        if (!week) return;
+        const day = week.days.find(d => d.id === dayId);
+        if (!day) return;
+
+        const current = day.paid == null ? '' : day.paid;
+        const input = prompt('Введите сумму, которую вам оплатили за смену (руб.):', current);
+        if (input === null) return;
+
+        const cleaned = input.replace(/[^0-9]/g, '');
+        day.paid = cleaned === '' ? null : parseInt(cleaned, 10);
+        saveData();
+        render();
+    }
+
+    function getDayTotals(day) {
+        const carsTotal = (day.night || 0) + (day.day || 0) + (day.evening || 0);
+        return { carsTotal, moneyTotal: carsTotal * 300 };
+    }
+
+    function getPaidStatus(day) {
+        if (day.paid == null) return null;
+        const { moneyTotal } = getDayTotals(day);
+        if (day.paid === moneyTotal) return 'match';
+        if (day.paid < moneyTotal) return 'less';
+        return 'more';
+    }
+
+    function getWeekTotals(week) {
+        let cars = 0, money = 0, paid = 0, paidCount = 0;
+        week.days.forEach(d => {
+            const t = getDayTotals(d);
+            cars += t.carsTotal;
+            money += t.moneyTotal;
+            if (d.paid != null) { paid += d.paid; paidCount++; }
+        });
+        return { cars, money, paid, paidCount, diff: paid - money };
+    }
+
+    function render() {
+        const container = document.getElementById('weeksContainer');
+        container.innerHTML = '';
+
+        if (data.weeks.length === 0) {
+            container.innerHTML = '<div class="empty-text">Пока нет ни одной недели. Нажмите «Создать неделю».</div>';
+        }
+
+        data.weeks.forEach((week, wIndex) => {
+            const weekEl = document.createElement('div');
+            weekEl.className = 'week-block' + (week.closed ? ' closed' : '');
+            const month = getCurrentMonth();
+
+            weekEl.innerHTML = `
+                <div class="week-header">
+                    <div class="week-title">📆 ${month} — Неделя ${wIndex + 1}${week.closed ? ' ✅' : ''}</div>
+                    <div class="week-actions">
+                        <button class="btn btn-small btn-finish ${week.closed ? 'finished' : ''}" 
+                                onclick="toggleFinishWeek(${week.id})">
+                            ${week.closed ? '↩ Возобновить' : '🏁 Завершить неделю'}
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="deleteWeek(${week.id})">🗑</button>
+                    </div>
+                </div>
+                <div class="days-grid" id="days-${week.id}"></div>
+                <div id="total-${week.id}"></div>
+            `;
+            container.appendChild(weekEl);
+
+            const daysGrid = weekEl.querySelector(`#days-${week.id}`);
+
+            week.days.forEach(day => {
+                daysGrid.appendChild(buildDayCard(week.id, day, week.closed));
+            });
+
+            if (!week.closed) {
+                const addTile = document.createElement('div');
+                addTile.className = 'add-day-tile';
+                addTile.textContent = '＋';
+                addTile.title = 'Добавить день';
+                addTile.onclick = () => createDay(week.id);
+                daysGrid.appendChild(addTile);
+            }
+
+            if (week.closed) {
+                const totalsEl = weekEl.querySelector(`#total-${week.id}`);
+                totalsEl.appendChild(buildWeekTotal(week));
+            }
+        });
+    }
+
+    function buildWeekTotal(week) {
+        const t = getWeekTotals(week);
+        const el = document.createElement('div');
+        el.className = 'week-total show';
+
+        let diffText = '—';
+        let diffColor = 'rgba(255,255,255,0.85)';
+        if (t.paidCount > 0) {
+            const sign = t.diff > 0 ? '+' : '';
+            diffText = sign + t.diff + ' руб.';
+            if (t.diff === 0) diffColor = '#b6ffd0';
+            else if (t.diff > 0) diffColor = '#d5b6ff';
+            else diffColor = '#ffb6b6';
+        }
+
+        el.innerHTML = `
+            <div class="week-total-title">Итог за неделю</div>
+            <div class="week-total-grid">
+                <span class="k">Всего машин:</span>
+                <span class="v">${t.cars}</span>
+                <span class="k">Расчётная сумма:</span>
+                <span class="v highlight">${t.money} руб.</span>
+                <span class="k">Оплачено:</span>
+                <span class="v">${t.paidCount > 0 ? t.paid + ' руб.' : '—'}</span>
+                <span class="k">Разница:</span>
+                <span class="v" style="color:${diffColor}">${diffText}</span>
+            </div>
+        `;
+        return el;
+    }
+
+    function buildDayCard(weekId, day, weekClosed) {
+        const card = document.createElement('div');
+        card.className = 'day-card';
+
+        const nightMoney = day.night * 300;
+        const dayMoney = day.day * 300;
+        const eveningMoney = day.evening * 300;
+        const { carsTotal, moneyTotal } = getDayTotals(day);
+        const status = getPaidStatus(day);
+
+        let paidBtnClass = 'paid-btn';
+        let paidBtnText = '💰 Оплачено';
+        if (status === 'match') { paidBtnClass += ' status-match'; paidBtnText = `✅ ${day.paid} руб.`; }
+        else if (status === 'less') { paidBtnClass += ' status-less'; paidBtnText = `⬇ ${day.paid} руб.`; }
+        else if (status === 'more') { paidBtnClass += ' status-more'; paidBtnText = `⬆ ${day.paid} руб.`; }
+
+        const disabled = weekClosed ? 'disabled' : '';
+
+        card.innerHTML = `
+            <div class="day-top">
+                <input type="text" class="day-number-input" placeholder="28.09" 
+                       value="${escapeHtml(day.date)}" ${disabled}
+                       oninput="updateDay(${weekId}, ${day.id}, 'date', this.value)">
+                <div class="day-top-btns">
+                    <button class="icon-btn notes-indicator" title="Примечания" 
+                            onclick="toggleNotes(this)">📝</button>
+                    ${!weekClosed ? `<button class="icon-btn" title="Удалить день" 
+                            onclick="deleteDay(${weekId}, ${day.id})">✕</button>` : ''}
+                </div>
+            </div>
+            <div class="shift-row">
+                <span class="shift-label">Ночь</span>
+                <input type="number" class="cars-input" min="0" placeholder="0"
+                       value="${day.night || ''}" ${disabled}
+                       oninput="onCarsInput(this, ${weekId}, ${day.id}, 'night')">
+                <span class="cars-word">машин</span>
+                <span class="money">${nightMoney} руб.</span>
+            </div>
+            <div class="shift-row">
+                <span class="shift-label">День</span>
+                <input type="number" class="cars-input" min="0" placeholder="0"
+                       value="${day.day || ''}" ${disabled}
+                       oninput="onCarsInput(this, ${weekId}, ${day.id}, 'day')">
+                <span class="cars-word">машин</span>
+                <span class="money">${dayMoney} руб.</span>
+            </div>
+            <div class="shift-row">
+                <span class="shift-label">Вечер</span>
+                <input type="number" class="cars-input" min="0" placeholder="0"
+                       value="${day.evening || ''}" ${disabled}
+                       oninput="onCarsInput(this, ${weekId}, ${day.id}, 'evening')">
+                <span class="cars-word">машин</span>
+                <span class="money">${eveningMoney} руб.</span>
+            </div>
+            <div class="total-row">
+                <span class="total-label">Итого за смену:</span>
+                <div class="total-block">
+                    <span class="total-value">${carsTotal} машин</span>
+                    <span class="total-money">${moneyTotal} руб.</span>
+                </div>
+                <button class="${paidBtnClass}" onclick="openPaidDialog(${weekId}, ${day.id})" ${disabled}>
+                    ${paidBtnText}
+                </button>
+            </div>
+            <div class="notes-block ${day.notes ? 'open' : ''}">
+                <textarea class="notes-textarea" placeholder="Дополнительные комментарии..."
+                          ${disabled}
+                          oninput="updateDay(${weekId}, ${day.id}, 'notes', this.value)">${escapeHtml(day.notes)}</textarea>
+            </div>
+        `;
+        return card;
+    }
+
+    function onCarsInput(input, weekId, dayId, field) {
+        let val = input.value.replace(/[^0-9]/g, '');
+        input.value = val;
+        updateDay(weekId, dayId, field, val);
+        recalcCard(input.closest('.day-card'), weekId, dayId);
+    }
+
+    function recalcCard(card, weekId, dayId) {
+        const week = data.weeks.find(w => w.id === weekId);
+        if (!week) return;
+        const day = week.days.find(d => d.id === dayId);
+        if (!day) return;
+
+        const rows = card.querySelectorAll('.shift-row');
+        const values = [day.night, day.day, day.evening];
+
+        rows.forEach((row, i) => {
+            row.querySelector('.money').textContent = (values[i] * 300) + ' руб.';
+        });
+
+        const { carsTotal, moneyTotal } = getDayTotals(day);
+        card.querySelector('.total-value').textContent = carsTotal + ' машин';
+        card.querySelector('.total-money').textContent = moneyTotal + ' руб.';
+
+        const paidBtn = card.querySelector('.paid-btn');
+        if (paidBtn && day.paid != null) {
+            paidBtn.classList.remove('status-match', 'status-less', 'status-more');
+            const status = getPaidStatus(day);
+            if (status === 'match') {
+                paidBtn.classList.add('status-match');
+                paidBtn.textContent = `✅ ${day.paid} руб.`;
+            } else if (status === 'less') {
+                paidBtn.classList.add('status-less');
+                paidBtn.textContent = `⬇ ${day.paid} руб.`;
+            } else if (status === 'more') {
+                paidBtn.classList.add('status-more');
+                paidBtn.textContent = `⬆ ${day.paid} руб.`;
+            }
+        }
+    }
+
+    function toggleNotes(btn) {
+        const card = btn.closest('.day-card');
+        card.querySelector('.notes-block').classList.toggle('open');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    loadData();
+    render();
+
+    setInterval(() => {
+        const currentMonth = getCurrentMonth();
+        document.querySelectorAll('.week-title').forEach((el, i) => {
+            const week = data.weeks[i];
+            if (!week) return;
+            el.textContent = `📆 ${currentMonth} — Неделя ${i + 1}${week.closed ? ' ✅' : ''}`;
+        });
+    }, 3600000);
+</script>
+
+</body>
+</html>
