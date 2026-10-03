@@ -202,11 +202,7 @@
 
     .week-actions { display: flex; gap: 6px; }
 
-    .btn-small {
-        padding: 7px 12px;
-        font-size: 13px;
-        border-radius: 10px;
-    }
+    .btn-small { padding: 7px 12px; font-size: 13px; border-radius: 10px; }
 
     .btn-icon {
         padding: 6px 8px;
@@ -356,13 +352,6 @@
         color: #fff;
         padding: 3px 4px;
         user-select: none;
-    }
-
-    .date-picker-today {
-        font-size: 11px;
-        color: #ffd966;
-        margin-left: 4px;
-        cursor: pointer;
     }
 
     /* ===== Строки смен ===== */
@@ -561,7 +550,6 @@
         margin-bottom: 10px;
     }
 
-    /* ===== Выровненная сетка для итогов ===== */
     .total-list {
         display: flex;
         flex-direction: column;
@@ -577,9 +565,7 @@
         padding: 2px 0;
     }
 
-    .total-line .k {
-        color: rgba(255,255,255,0.85);
-    }
+    .total-line .k { color: rgba(255,255,255,0.85); }
 
     .total-line .v {
         color: #fff;
@@ -795,18 +781,6 @@
         render();
     }
 
-    function setToday(weekId, dayId) {
-        const w = data.weeks.find(x => x.id === weekId);
-        if (!w) return;
-        const d = w.days.find(x => x.id === dayId);
-        if (!d) return;
-        const t = today();
-        d.dayNum = t.d;
-        d.monthNum = t.m;
-        saveData();
-        render();
-    }
-
     function updateDay(weekId, dayId, field, value) {
         const w = data.weeks.find(x => x.id === weekId);
         if (!w) return;
@@ -841,7 +815,7 @@
         const w = data.weeks.find(x => x.id === weekId);
         if (!w) return;
         const cur = w.paid == null ? '' : w.paid;
-        const v = prompt('Введите сумму, оплаченную за неделю (руб.):', cur);
+        const v = prompt('Введите сумму, оплаченную за неделю (руб.). Если оставить пустым, будет использоваться сумма оплат по дням:', cur);
         if (v === null) return;
         const cleaned = v.replace(/[^0-9]/g, '');
         w.paid = cleaned === '' ? null : parseInt(cleaned, 10);
@@ -858,6 +832,15 @@
         return { cars, money, tax, afterTax };
     }
 
+    /* ===== Сумма оплат по дням недели ===== */
+    function getDaysPaidSum(week) {
+        let sum = 0, count = 0;
+        week.days.forEach(d => {
+            if (d.paid != null) { sum += d.paid; count++; }
+        });
+        return { sum, count };
+    }
+
     function getWeekTotals(week) {
         let cars = 0, money = 0, tax = 0, afterTax = 0;
         week.days.forEach(d => {
@@ -867,10 +850,26 @@
             tax += t.tax;
             afterTax += t.afterTax;
         });
+
+        // Если у недели вручную задана сумма — используем её.
+        // Иначе — сумма оплат по дням.
+        const daysPaid = getDaysPaidSum(week);
+        let paid = null;
+        let paidSource = 'none';
+        if (week.paid != null) {
+            paid = week.paid;
+            paidSource = 'week';
+        } else if (daysPaid.count > 0) {
+            paid = daysPaid.sum;
+            paidSource = 'days';
+        }
+
         return {
             cars, money, tax, afterTax,
-            paid: week.paid == null ? null : week.paid,
-            diff: week.paid == null ? null : week.paid - afterTax
+            paid, paidSource,
+            daysPaid: daysPaid.sum,
+            daysPaidCount: daysPaid.count,
+            diff: paid == null ? null : paid - afterTax
         };
     }
 
@@ -905,7 +904,6 @@
         const t = getWeekTotals(week);
 
         if (week.closed) {
-            // ===== СВЁРНУТАЯ НЕДЕЛЯ: сумма + сумма после налога + оплачено =====
             const status = getPaidStatus(t.paid, t.afterTax);
             let paidShort = t.paid == null ? '—' : t.paid + ' ₽';
             let paidColor = '';
@@ -934,7 +932,6 @@
             return el;
         }
 
-        // ===== РАЗВЁРНУТАЯ НЕДЕЛЯ =====
         el.innerHTML = `
             <div class="week-header">
                 <div class="week-title">${ICONS.calendar} ${getMonthName()} — Неделя ${wIdx + 1}</div>
@@ -971,7 +968,6 @@
         return el;
     }
 
-    /* ===== Итог недели с выровненными строками ===== */
     function buildWeekTotal(week) {
         const t = getWeekTotals(week);
         const el = document.createElement('div');
@@ -992,6 +988,14 @@
             if (t.diff === 0) diffColor = '#b6ffd0';
             else if (t.diff > 0) diffColor = '#d5b6ff';
             else diffColor = '#ffb6b6';
+        }
+
+        // Пояснение источника оплаты
+        let paidNote = '';
+        if (t.paidSource === 'days') {
+            paidNote = `<div class="total-line"><span class="k" style="font-size:12px; opacity:0.75;">(сумма оплат по дням)</span><span class="v"></span></div>`;
+        } else if (t.paidSource === 'week') {
+            paidNote = `<div class="total-line"><span class="k" style="font-size:12px; opacity:0.75;">(указано вручную за неделю)</span><span class="v"></span></div>`;
         }
 
         el.innerHTML = `
@@ -1017,6 +1021,7 @@
                     <span class="k">Оплачено:</span>
                     <span class="v">${t.paid != null ? t.paid + ' ₽' : '—'}</span>
                 </div>
+                ${paidNote}
                 <div class="total-line">
                     <span class="k">Разница:</span>
                     <span class="v" style="color:${diffColor}">${diffText}</span>
@@ -1032,7 +1037,6 @@
         return el;
     }
 
-    /* ===== Карточка дня ===== */
     function buildDay(weekId, day) {
         const card = document.createElement('div');
         card.className = 'day-card' + (day.closed ? ' collapsed' : '');
@@ -1040,7 +1044,6 @@
         const dateStr = (day.dayNum && day.monthNum) ? formatDate(day.dayNum, day.monthNum) : '—';
 
         if (day.closed) {
-            // ===== СВЁРНУТЫЙ ДЕНЬ =====
             const status = getPaidStatus(day.paid, t.afterTax);
             let paidColor = '';
             if (status === 'match') paidColor = '#b6ffd0';
@@ -1068,7 +1071,6 @@
             return card;
         }
 
-        // ===== РАЗВЁРНУТЫЙ ДЕНЬ =====
         const status = getPaidStatus(day.paid, t.afterTax);
         let paidBtnClass = 'paid-btn';
         let paidBtnText = ICONS.wallet + ' Оплачено';
@@ -1082,7 +1084,6 @@
                     <button onclick="changeDayNum(${weekId}, ${day.id}, -1)" title="День назад">${ICONS.chevronLeft}</button>
                     <span class="date-picker-value">${dateStr}</span>
                     <button onclick="changeDayNum(${weekId}, ${day.id}, 1)" title="День вперёд">${ICONS.chevronRight}</button>
-                    <span class="date-picker-today" title="Сегодня" onclick="setToday(${weekId}, ${day.id})">сегодня</span>
                 </div>
                 <div class="day-top-btns">
                     <button class="icon-btn" title="Примечания" onclick="toggleNotes(this)">${ICONS.note}</button>
